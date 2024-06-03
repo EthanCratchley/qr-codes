@@ -1,13 +1,13 @@
 import pandas as pd
 import qrcode
 import os
-from tkinter import Tk, Label, Button, filedialog, messagebox, StringVar, Entry
+from tkinter import Tk, Label, Button, filedialog, messagebox, StringVar, Entry, Toplevel, ttk
 
 class QRCodeGenerator:
     def __init__(self, master):
         self.master = master
         master.title("Bulk QR Code Generator")
-        master.geometry("500x300")  # Set the size of the window
+        master.geometry("400x250")  # Set the size of the window
 
         self.label = Label(master, text="Bulk QR Code Generator")
         self.label.pack(pady=10)
@@ -54,14 +54,25 @@ class QRCodeGenerator:
             messagebox.showerror("Error", f"Failed to read CSV file: {e}")
             return
 
-        required_columns = {'Name', 'Phone', 'Email'}
+        required_columns = {'Full Name', 'Phone', 'Email'}
         if not required_columns.issubset(data.columns):
             messagebox.showerror("Error", f"CSV file must contain the following columns: {', '.join(required_columns)}")
             return
 
         export_path = self.export_directory.get()
+        progress_window = Toplevel(self.master)
+        progress_window.title("Progress")
+        progress_window.geometry("300x100")
+        progress_label = Label(progress_window, text="Generating QR Codes...")
+        progress_label.pack(pady=10)
+        progress_bar = ttk.Progressbar(progress_window, length=200, mode='determinate')
+        progress_bar.pack(pady=10)
+
+        total_rows = len(data)
+        progress_bar['maximum'] = total_rows
+
         for index, row in data.iterrows():
-            name = row['Name']
+            name = row['Full Name']
             phone = row['Phone']
             email = row['Email']
             qr_data = f"""
@@ -84,7 +95,11 @@ END:VCARD
             img = qr.make_image(fill='black', back_color='white')
             img_path = os.path.join(export_path, f"{name}_qr_code.png")
             img.save(img_path)
+            
+            progress_bar['value'] = index + 1
+            progress_window.update_idletasks()
 
+        progress_window.destroy()
         messagebox.showinfo("Success", "QR Codes generated successfully")
 
 if __name__ == "__main__":
